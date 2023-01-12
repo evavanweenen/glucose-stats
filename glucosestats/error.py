@@ -6,7 +6,7 @@ from copy import copy
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from constants import mmoll_mgdl
+from .constants import mmoll_mgdl
 
 sns.set()
 sns.set_context('paper')

@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 
-from constants import glucose_levels
+from .constants import glucose_levels
 
 def hypo(X:pd.Series):
     """
