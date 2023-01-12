@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name='glucose-stats',
-    version='0.0.1',
+    version='0.0.2',
     author='Eva van Weenen',
     author_email='evanweenen@ethz.ch',
     description='Calculate glucose statistics from continuous glucose monitoring data',
@@ -16,5 +16,5 @@ setup(
     packages=['glucosestats'],
     scripts=['bin/run.py'],
     zip_safe=False,
-    install_requires=['numpy', 'pandas','pytorch','matplotlib','seaborn']
+    install_requires=['numpy', 'pandas','torch','matplotlib','seaborn']
     )
