@@ -1,37 +1,46 @@
 import pandas as pd
 import numpy as np
 
-from .constants import glucose_levels
+from .constants import glucose_levels, mmoll_mgdl
 
-def hypo(X:pd.Series):
+def minimum_eventtime(X:pd.Series,  mintime:str):
+    """
+    Set event to false if minimum event time is violated
+    Note: a pandas rolling function does not work here, as it would not take into account the entire event
+
+    X       - pd.Series with dtype int indicating event (1 or 0)
+    mintime - minimum even time
+    """
+    for start, end in zip(X[X.diff() == 1].index, X[X.diff().shift(-1) == -1].index):        
+        if end - start < pd.to_timedelta(mintime):
+            X.loc[(X.index >= start) & (X.index <= end)] = 0
+    return X
+
+def hypo(X:pd.Series, mintime:str='14min45S', unit:str='mgdl'):
     """
     Calculate hypo according to definition of https://doi.org/10.2337/dc17-1600
-    Note: make sure your data has the following shape
-    - data is sorted by timestamp
-    - data occurs at a frequency of 5 minutes (e.g. from Dexcom or Medtronic devices)
-    - missing data should still have a timestamp entry, but its associated glucose value should be NaN
+    Note: make sure your data has timestamp indices
     """
-    res = (X < glucose_levels['target'][0]) \
-        & (X.shift(1) < glucose_levels['target'][0]) \
-        & (X.shift(2) < glucose_levels['target'][0])
-    res[X.isna() | X.shift(1).isna() | X.shift(2).isna()] = np.nan
+    if unit == 'mmoll':
+        res = (X * mmoll_mgdl < glucose_levels['target'][0]).astype(int)
+    elif unit == 'mgdl':
+        res = (X < glucose_levels['target'][0]).astype(int)
+    res = minimum_eventtime(res, mintime)
     return res
 
-def hyper(X:pd.Series):
+def hyper(X:pd.Series, mintime:str='14min45S', unit:str='mgdl'):
     """
     Calculate hyper according to definition of https://doi.org/10.2337/dc17-1600
-    Note: make sure your data has the following shape
-    - data is sorted by timestamp
-    - data occurs at a frequency of 5 minutes (e.g. from Dexcom or Medtronic devices)
-    - missing data should still have a timestamp entry, but its associated glucose value should be NaN
+    Note: make sure your data has timestamp indices
     """
-    res = (X > glucose_levels['target'][1]) \
-        & (X.shift(1) > glucose_levels['target'][1]) \
-        & (X.shift(2) > glucose_levels['target'][1])
-    res[X.isna() | X.shift(1).isna() | X.shift(2).isna()] = np.nan
+    if unit == 'mmoll':
+        res = (X * mmoll_mgdl > glucose_levels['target'][1]).astype(int)
+    elif unit == 'mgdl':
+        res = (X > glucose_levels['target'][1]).astype(int)
+    res = minimum_eventtime(res, mintime)
     return res
 
-def symmetric_scale(X:pd.Series, unit='mgdl'):
+def symmetric_scale(X:pd.Series, unit:str='mgdl'):
     # symmetric scaling for blood glucose
     if unit == 'mgdl':
         return 1.509*(np.log(X)**1.084 - 5.381)
@@ -58,7 +67,7 @@ def perc_in_level(X:pd.Series, l:str, levels:dict=glucose_levels):
     """
     return ((X >= levels[l][0]) & (X <= levels[l][1])).sum() / X.count() * 100
 
-def stats_cgm(X:pd.DataFrame, col='Glucose Value (mg/dL)'):
+def stats_cgm(X:pd.DataFrame, col:str='Glucose Value (mg/dL)'):
     return {'time_in_hypo'     : time_in_level(X[col], 'hypo'),
             'time_in_hypoL2'   : time_in_level(X[col], 'hypo L2'),
             'time_in_hypoL1'   : time_in_level(X[col], 'hypo L1'),
