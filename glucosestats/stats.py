@@ -12,6 +12,7 @@ def minimum_eventtime(X:pd.Series,  mintime:str):
     mintime - minimum even time
     """
     for start, end in zip(X[X.diff() == 1].index, X[X.diff().shift(-1) == -1].index):        
+        assert start <= end, f"Oops, there is something wrong with your event list. Start {start} is larger than end {end}."
         if end - start < pd.to_timedelta(mintime):
             X.loc[(X.index >= start) & (X.index <= end)] = 0
     return X
@@ -25,8 +26,8 @@ def hypo(X:pd.Series, mintime:str='14min45S', unit:str='mgdl'):
         res = (X * mmoll_mgdl < glucose_levels['target'][0]).astype(int)
     elif unit == 'mgdl':
         res = (X < glucose_levels['target'][0]).astype(int)
-    res.loc[X.isna()] = np.nan
     res = minimum_eventtime(res, mintime)
+    res.loc[X.isna()] = np.nan
     return res
 
 def hyper(X:pd.Series, mintime:str='14min45S', unit:str='mgdl'):
@@ -38,8 +39,8 @@ def hyper(X:pd.Series, mintime:str='14min45S', unit:str='mgdl'):
         res = (X * mmoll_mgdl > glucose_levels['target'][1]).astype(int)
     elif unit == 'mgdl':
         res = (X > glucose_levels['target'][1]).astype(int)
-    res.loc[X.isna()] = np.nan
     res = minimum_eventtime(res, mintime)
+    res.loc[X.isna()] = np.nan
     return res
 
 def symmetric_scale(X:pd.Series, unit:str='mgdl'):
